@@ -2,64 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Player Sales Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minecraft Sales Viewer</title>
   <style>
     body {
-      background-color: #1c1c1c;
-      color: #f1f1f1;
+      background: #1e1e1e;
+      color: #fff;
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
-      padding: 2em;
+      margin: 0;
+      padding: 2rem;
     }
     h1 {
-      color: #ffb400;
+      color: #ffcc00;
+    }
+    #searchBox {
+      margin-bottom: 20px;
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
     }
     table {
       margin: auto;
-      width: 70%;
-      background: #2c2c2c;
       border-collapse: collapse;
+      width: 80%;
+      background: #2b2b2b;
     }
     th, td {
-      padding: 12px;
+      padding: 10px;
       border: 1px solid #444;
     }
     th {
-      background: #3a3a3a;
-      color: #eee;
+      background: #3c3c3c;
     }
     tr:hover {
-      background-color: #444;
+      background: #444;
+    }
+    .loading {
+      font-style: italic;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
   <h1>📊 Minecraft Player Sales Report</h1>
-  <table id="salesTable">
+
+  <input type="text" id="searchBox" placeholder="Search by player name..." onkeyup="filterTable()"/>
+
+  <p id="status" class="loading">Loading transactions.json (please wait)...</p>
+
+  <table id="salesTable" style="display:none">
     <thead>
       <tr><th>Player</th><th>Total Sold ($)</th></tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="salesBody"></tbody>
   </table>
 
   <script>
-    fetch("_MConverter.eu_transaction-log.json")
+    let rawData = {};
+    const statusEl = document.getElementById("status");
+    const table = document.getElementById("salesTable");
+    const tbody = document.getElementById("salesBody");
+
+    fetch("transactions.json")
       .then(res => res.json())
       .then(data => {
-        const tableBody = document.querySelector("#salesTable tbody");
+        rawData = data;
+
         const sorted = Object.entries(data).sort((a, b) => b[1].total - a[1].total);
 
-        sorted.forEach(([player, info]) => {
+        for (const [name, info] of sorted) {
           const row = document.createElement("tr");
-          row.innerHTML = `<td>${player}</td><td>$${info.total.toFixed(2)}</td>`;
-          tableBody.appendChild(row);
-        });
+          row.innerHTML = `<td>${name}</td><td>$${info.total.toFixed(2)}</td>`;
+          tbody.appendChild(row);
+        }
+
+        statusEl.remove();
+        table.style.display = "table";
       })
       .catch(err => {
-        alert("⚠️ Failed to load transactions.json");
+        statusEl.innerText = "❌ Failed to load transactions.json";
         console.error(err);
       });
+
+    function filterTable() {
+      const query = document.getElementById("searchBox").value.toLowerCase();
+      const rows = tbody.getElementsByTagName("tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        const player = rows[i].getElementsByTagName("td")[0].innerText.toLowerCase();
+        rows[i].style.display = player.includes(query) ? "" : "none";
+      }
+    }
   </script>
 </body>
 </html>
