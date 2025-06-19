@@ -1,0 +1,21 @@
+{
+  "Steve": {
+    "tax": 23.0,
+    "items": {
+      "Diamond": 15.0,
+      "Gold": 8.0
+    }
+  },
+  "Alex": {
+    "tax": 3.0,
+    "items": {
+      "Iron": 3.0
+    }
+  },
+  "bedrock.user": {
+    "tax": 5.0,
+    "items": {
+      "Emerald": 5.0
+    }
+  }
+}
