@@ -2,175 +2,160 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Economy Tax Viewer</title>
+  <title>Tax Tracker</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #0e0e0e;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
       padding: 20px;
-      max-width: 900px;
-      margin: auto;
     }
-    h1 {
-      text-align: center;
-    }
-    input, select, button {
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    .profile-box {
-      border: 1px solid #555;
-      padding: 15px;
-      margin-top: 20px;
-      background: #1e1e1e;
-    }
-    .tax-list {
-      margin-top: 10px;
-    }
-    .tax-list table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .tax-list th, .tax-list td {
-      border: 1px solid #444;
+    h1 { color: #6df; }
+    input, button, select {
       padding: 8px;
+      margin: 6px;
+      border-radius: 6px;
+      border: none;
+    }
+    #playerList button {
+      display: block;
+      margin: 4px;
+      width: 100%;
       text-align: left;
     }
-    .button-group button {
-      margin-right: 10px;
+    .hidden { display: none; }
+    .player-profile {
+      border: 1px solid #444;
+      padding: 15px;
+      border-radius: 10px;
+      background: #1a1a1a;
+      margin-top: 20px;
+    }
+    .tax-table {
+      margin-top: 10px;
+    }
+    .tax-table td {
+      padding: 3px 8px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Player Tax Viewer</h1>
+  <h1>🧾 Minecraft Tax Tracker</h1>
 
-    <input type="text" id="searchInput" placeholder="Enter player name (. allowed)">
-    <button onclick="loadPlayer()">View Profile</button>
+  <label>📁 Upload transactions.txt:
+    <input type="file" id="uploadFile" accept=".txt" onchange="readFile(event)">
+  </label><br>
 
+  <label>🔀 Sort by:
     <select id="sortSelect" onchange="sortPlayers()">
-      <option value="alpha">Sort A-Z</option>
-      <option value="rank">Sort by Rank</option>
+      <option value="alpha">Alphabetical</option>
+      <option value="tax">Top Tax Rank</option>
     </select>
+  </label>
 
-    <div id="playerList"></div>
-    <div id="profile"></div>
-  </div>
+  <div id="playerList"></div>
+
+  <div id="playerProfile" class="player-profile hidden"></div>
 
   <script>
-    const dummyData = {
-      "steve": {
-        totalTax: 150,
-        items: {"diamond": 70, "gold": 50, "iron": 30},
-        rank: 2
-      },
-      "alex": {
-        totalTax: 90,
-        items: {"gold": 40, "iron": 50},
-        rank: 5
-      },
-      "bedrock.player": {
-        totalTax: 200,
-        items: {"diamond": 100, "gold": 50, "emerald": 50},
-        rank: 1
+    const webhookUrl = "https://discordapp.com/api/webhooks/your_webhook_here";
+    let playerData = {};
+
+    function readFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => parseTransactions(e.target.result);
+      reader.readAsText(file);
+    }
+
+    function parseTransactions(text) {
+      playerData = {};
+      const lines = text.split(/\r?\n/);
+
+      for (const line of lines) {
+        const match = line.match(/Player (.+?) sold (\d+) x (.+?) for \$([\d.]+)/i);
+        if (match) {
+          const [, rawName, qty, item, amountStr] = match;
+          const name = rawName.trim();
+          const amount = parseFloat(amountStr);
+          const tax = amount * 0.10;
+
+          if (!playerData[name]) playerData[name] = { tax: 0, items: {} };
+          playerData[name].tax += tax;
+          playerData[name].items[item] = (playerData[name].items[item] || 0) + tax;
+        }
       }
-    };
+      sortPlayers();
+    }
 
     function sortPlayers() {
-      const sortType = document.getElementById('sortSelect').value;
-      const sorted = Object.entries(dummyData).sort((a, b) => {
-        return sortType === 'alpha'
-          ? a[0].localeCompare(b[0])
-          : a[1].rank - b[1].rank;
-      });
+      const method = document.getElementById("sortSelect").value;
+      const container = document.getElementById("playerList");
+      container.innerHTML = "";
 
-      const list = sorted.map(([name, data]) => `<div><a href="#" onclick="loadPlayer('${name}')">${name}</a> - Tax: $${data.totalTax}</div>`);
-      document.getElementById('playerList').innerHTML = list.join('');
+      let players = Object.keys(playerData);
+      if (method === "alpha") players.sort();
+      else players.sort((a, b) => playerData[b].tax - playerData[a].tax);
+
+      for (const name of players) {
+        const btn = document.createElement("button");
+        btn.textContent = `${name} - $${playerData[name].tax.toFixed(2)} tax`;
+        btn.onclick = () => showProfile(name);
+        container.appendChild(btn);
+      }
     }
 
-    function loadPlayer(username = null) {
-      if (!username) username = document.getElementById('searchInput').value.trim();
-      if (!dummyData[username]) {
-        alert('Player not found');
+    function showProfile(name) {
+      const profile = document.getElementById("playerProfile");
+      const data = playerData[name];
+      profile.innerHTML = `
+        <h2>👤 ${name}'s Profile</h2>
+        <p>💰 Total Tax: <strong>$${data.tax.toFixed(2)}</strong></p>
+
+        <button onclick="document.getElementById('taxItems').classList.toggle('hidden')">📦 Toggle Itemized Tax</button>
+        <table id="taxItems" class="tax-table hidden">
+          ${Object.entries(data.items).map(([item, val]) => `
+            <tr><td>${item}</td><td>$${val.toFixed(2)}</td></tr>
+          `).join('')}
+        </table>
+
+        <h3>💳 Payment Options</h3>
+        <button onclick="closeProfile()">❌ Exit</button>
+        <br><br>
+        <input type="number" id="payAmount" placeholder="Amount to Pay">
+        <button onclick="sendTax('${name}', 'pay')">✅ Pay Tax</button>
+        <button onclick="sendTax('${name}', 'advance')">💎 Advance Pay</button>
+      `;
+      profile.classList.remove("hidden");
+    }
+
+    function closeProfile() {
+      document.getElementById("playerProfile").classList.add("hidden");
+    }
+
+    function sendTax(player, type) {
+      const amount = parseFloat(document.getElementById("payAmount").value);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount.");
         return;
       }
 
-      const data = dummyData[username];
-      const itemsHtml = Object.entries(data.items).map(([item, tax]) => `<tr><td>${item}</td><td>$${tax}</td></tr>`).join('');
-      document.getElementById('profile').innerHTML = `
-        <div class="profile-box">
-          <h2>Profile: ${username}</h2>
-          <p>Total Tax Due: <strong>$${data.totalTax}</strong></p>
-
-          <div class="tax-list">
-            <button onclick="toggleItems()">Toggle Tax Items</button>
-            <div id="itemTable" style="display: none;">
-              <table>
-                <tr><th>Item</th><th>Tax</th></tr>
-                ${itemsHtml}
-              </table>
-            </div>
-          </div>
-
-          <div class="button-group">
-            <button onclick="exitProfile()">1. Exit</button>
-            <button onclick="payTax('${username}')">2. Pay Tax</button>
-            <button onclick="advancePay('${username}')">3. Advance Pay</button>
-          </div>
-
-          <div id="amountInput" style="display:none; margin-top: 10px;">
-            <input type="number" id="taxAmount" placeholder="Enter amount to pay">
-            <button onclick="submitTax('${username}')">Submit</button>
-          </div>
-        </div>`;
-    }
-
-    function toggleItems() {
-      const el = document.getElementById('itemTable');
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function exitProfile() {
-      document.getElementById('profile').innerHTML = '';
-    }
-
-    function payTax(username) {
-      document.getElementById('amountInput').style.display = 'block';
-    }
-
-    function advancePay(username) {
-      document.getElementById('amountInput').style.display = 'block';
-    }
-
-    function submitTax(username) {
-      const amount = document.getElementById('taxAmount').value;
-      if (!amount || amount <= 0) {
-        alert('Enter a valid amount');
-        return;
-      }
-      const payload = {
-        username,
-        amount,
-        time: new Date().toISOString()
+      const data = {
+        content: `📤 **${player}** chose to **${type === 'pay' ? 'Pay Tax' : 'Advance Pay'}**: $${amount.toFixed(2)}`
       };
 
-      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `Tax Paid: ${username} paid $${amount}` })
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
       }).then(() => {
-        alert('Payment submitted!');
-        exitProfile();
-      }).catch(() => alert('Webhook error'));
+        alert("✅ Sent to webhook!");
+        closeProfile();
+      }).catch(() => {
+        alert("❌ Failed to send webhook.");
+      });
     }
-
-    sortPlayers(); // Default sort
   </script>
 </body>
 </html>
