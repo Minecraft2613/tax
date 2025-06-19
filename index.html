@@ -2,136 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <title>Player Sales Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Minecraft Tax Viewer</title>
   <style>
     body {
+      background-color: #1c1c1c;
+      color: #f1f1f1;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #1f1f1f, #333);
-      color: #eee;
-      padding: 2rem;
       text-align: center;
+      padding: 2em;
     }
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      font-size: 16px;
+    h1 {
+      color: #ffb400;
     }
-    #playerInfo {
-      margin-top: 20px;
-      background: #2a2a2a;
-      padding: 20px;
-      border-radius: 8px;
-      display: none;
+    table {
+      margin: auto;
+      width: 70%;
+      background: #2c2c2c;
+      border-collapse: collapse;
     }
-    .item-row {
-      margin: 4px 0;
+    th, td {
+      padding: 12px;
+      border: 1px solid #444;
     }
-    button.action {
-      margin: 5px;
-      padding: 8px 14px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    th {
+      background: #3a3a3a;
+      color: #eee;
     }
-    button.action:hover {
-      background: #666;
+    tr:hover {
+      background-color: #444;
     }
   </style>
 </head>
 <body>
-  <h1>🧾 Minecraft Tax Report</h1>
-  <p>Enter your username to check your tax details</p>
-  <input type="text" id="usernameInput" placeholder="Enter username" />
-  <button onclick="showTax()">Check Tax</button>
-
-  <div id="playerInfo">
-    <h2 id="playerName"></h2>
-    <p><strong>Total Tax:</strong> $<span id="totalTax">0.00</span></p>
-    <h3>Taxed Items:</h3>
-    <div id="itemList"></div>
-
-    <hr>
-    <button class="action" onclick="exitProfile()">Exit</button>
-    <button class="action" onclick="payTax()">Pay Tax</button>
-    <button class="action" onclick="advancePay()">Advance Pay</button>
-    <button class="action" onclick="reportIssue()">Report Issue</button>
-  </div>
+  <h1>📊 Minecraft Player Sales Report</h1>
+  <table id="salesTable">
+    <thead>
+      <tr><th>Player</th><th>Total Sold ($)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    let taxData = {};
-
-    fetch("transaction.json")
+    fetch("transactions.json")
       .then(res => res.json())
-      .then(data => taxData = data)
-      .catch(err => alert("❌ Failed to load tax data"));
+      .then(data => {
+        const tableBody = document.querySelector("#salesTable tbody");
+        const sorted = Object.entries(data).sort((a, b) => b[1].total - a[1].total);
 
-    function showTax() {
-      const input = document.getElementById("usernameInput").value.trim().toLowerCase();
-      if (!input) return alert("⚠️ Please enter a username.");
-
-      // Allow partial match
-      const player = Object.keys(taxData).find(p => p.toLowerCase().includes(input));
-      if (!player) return alert("❌ Username not found!");
-
-      const tax = taxData[player];
-      document.getElementById("playerName").innerText = player;
-      document.getElementById("totalTax").innerText = tax.tax.toFixed(2);
-
-      const itemList = document.getElementById("itemList");
-      itemList.innerHTML = "";
-
-      for (const [item, amount] of Object.entries(tax.items)) {
-        const row = document.createElement("div");
-        row.className = "item-row";
-        row.innerText = `${item}: $${amount.toFixed(2)}`;
-        itemList.appendChild(row);
-      }
-
-      document.getElementById("playerInfo").style.display = "block";
-    }
-
-    function exitProfile() {
-      document.getElementById("playerInfo").style.display = "none";
-      document.getElementById("usernameInput").value = "";
-    }
-
-    function payTax() {
-      const username = document.getElementById("playerName").innerText;
-      const amount = prompt("Enter amount to pay:");
-      if (!amount) return;
-      sendToWebhook(username, "Pay Tax", amount);
-    }
-
-    function advancePay() {
-      const username = document.getElementById("playerName").innerText;
-      const amount = prompt("Enter amount for advance payment:");
-      if (!amount) return;
-      sendToWebhook(username, "Advance Pay", amount);
-    }
-
-    function reportIssue() {
-      const username = document.getElementById("playerName").innerText;
-      const issue = prompt("Describe the issue:");
-      if (!issue) return;
-      sendToWebhook(username, "Report Issue", issue);
-    }
-
-    function sendToWebhook(player, type, content) {
-      const webhookUrl = "https://discord.com/api/webhooks/YOUR-WEBHOOK-ID"; // Replace this!
-
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: "TaxBot",
-          content: `📩 **${type}** from **${player}**: ${content}`
-        })
-      }).then(() => alert("✅ Submitted successfully."))
-        .catch(() => alert("❌ Failed to send to Discord Webhook."));
-    }
+        sorted.forEach(([player, info]) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${player}</td><td>$${info.total.toFixed(2)}</td>`;
+          tableBody.appendChild(row);
+        });
+      })
+      .catch(err => {
+        alert("⚠️ Failed to load transactions.json");
+        console.error(err);
+      });
   </script>
 </body>
 </html>
