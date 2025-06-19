@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Player Tax Viewer</title>
+  <title>Minecraft Tax Viewer</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -63,18 +63,18 @@
   <script>
     let taxData = {};
 
-    // Load JSON data
     fetch("transactions.json")
       .then(res => res.json())
       .then(data => taxData = data)
-      .catch(err => alert("Failed to load tax data"));
+      .catch(err => alert("❌ Failed to load tax data"));
 
     function showTax() {
-      const username = document.getElementById("usernameInput").value.trim();
-      if (!username) return alert("Please enter a username.");
+      const input = document.getElementById("usernameInput").value.trim().toLowerCase();
+      if (!input) return alert("⚠️ Please enter a username.");
 
-      const player = Object.keys(taxData).find(p => p.toLowerCase() === username.toLowerCase());
-      if (!player) return alert("Username not found!");
+      // Allow partial match
+      const player = Object.keys(taxData).find(p => p.toLowerCase().includes(input));
+      if (!player) return alert("❌ Username not found!");
 
       const tax = taxData[player];
       document.getElementById("playerName").innerText = player;
@@ -100,36 +100,37 @@
 
     function payTax() {
       const username = document.getElementById("playerName").innerText;
-      const amount = prompt("Enter amount you want to pay:");
+      const amount = prompt("Enter amount to pay:");
       if (!amount) return;
-      sendToWebhook(username, "pay", amount);
+      sendToWebhook(username, "Pay Tax", amount);
     }
 
     function advancePay() {
       const username = document.getElementById("playerName").innerText;
       const amount = prompt("Enter amount for advance payment:");
       if (!amount) return;
-      sendToWebhook(username, "advance", amount);
+      sendToWebhook(username, "Advance Pay", amount);
     }
 
     function reportIssue() {
       const username = document.getElementById("playerName").innerText;
-      const issue = prompt("Describe your issue:");
+      const issue = prompt("Describe the issue:");
       if (!issue) return;
-      sendToWebhook(username, "report", issue);
+      sendToWebhook(username, "Report Issue", issue);
     }
 
-    function sendToWebhook(username, type, content) {
-      const webhookUrl = "https://discord.com/api/webhooks/your-webhook-id"; // Replace this
+    function sendToWebhook(player, type, content) {
+      const webhookUrl = "https://discord.com/api/webhooks/YOUR-WEBHOOK-ID"; // Replace this!
 
       fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: "TaxBot",
-          content: `📢 **${type.toUpperCase()}** from ${username}: ${content}`
+          content: `📩 **${type}** from **${player}**: ${content}`
         })
-      }).then(() => alert("Submitted!")).catch(() => alert("Webhook failed."));
+      }).then(() => alert("✅ Submitted successfully."))
+        .catch(() => alert("❌ Failed to send to Discord Webhook."));
     }
   </script>
 </body>
