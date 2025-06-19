@@ -63,7 +63,7 @@
   <script>
     let taxData = {};
 
-    fetch("transaction-log.txt")
+    fetch("transaction.json")
       .then(res => res.json())
       .then(data => taxData = data)
       .catch(err => alert("❌ Failed to load tax data"));
