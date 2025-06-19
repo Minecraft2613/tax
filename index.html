@@ -2,165 +2,175 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Economy Tax Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+  <title>Economy Tax Viewer</title>
   <style>
     body {
-      font-family: 'Outfit', sans-serif;
+      font-family: Arial, sans-serif;
+      background: #0e0e0e;
+      color: #e0e0e0;
       margin: 0;
-      background: linear-gradient(135deg, #1f1f1f, #2b2b2b);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
+      padding: 0;
     }
-
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
     h1 {
-      font-size: 2.5rem;
-      color: #00ffe5;
+      text-align: center;
     }
-
-    .card {
-      background: #292929;
-      border-radius: 1rem;
-      box-shadow: 0 0 15px #00ffe577;
-      padding: 1.5rem;
-      margin: 1rem 0;
-      width: 90%;
-      max-width: 700px;
+    input, select, button {
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
     }
-
-    .card h2 {
-      color: #00d9ff;
+    .profile-box {
+      border: 1px solid #555;
+      padding: 15px;
+      margin-top: 20px;
+      background: #1e1e1e;
     }
-
-    .player-entry {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.5rem 0;
-      padding-bottom: 0.25rem;
-      border-bottom: 1px dashed #555;
+    .tax-list {
+      margin-top: 10px;
     }
-
-    .btn {
-      background: #00ffe5;
-      border: none;
-      color: #000;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 0.25rem;
-    }
-
-    .btn:hover {
-      background: #00bfa5;
-    }
-
-    .input-box {
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-      border: none;
+    .tax-list table {
       width: 100%;
-      margin-top: 0.5rem;
+      border-collapse: collapse;
     }
-
-    .report-form textarea {
-      width: 100%;
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-      border: none;
-      margin-top: 0.5rem;
+    .tax-list th, .tax-list td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: left;
+    }
+    .button-group button {
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>💰 Economy Tax Dashboard</h1>
+  <div class="container">
+    <h1>Player Tax Viewer</h1>
 
-  <div class="card" id="top-taxed">
-    <h2>🏆 Top Taxed Player</h2>
-    <div class="player-entry">
-      <span><strong id="topPlayer">Loading...</strong></span>
-      <span><strong id="topAmount">$0</strong></span>
-    </div>
-  </div>
+    <input type="text" id="searchInput" placeholder="Enter player name (. allowed)">
+    <button onclick="loadPlayer()">View Profile</button>
 
-  <div class="card">
-    <h2>📋 Tax List</h2>
-    <div id="playerList">
-      <div class="player-entry"><span>Loading...</span></div>
-    </div>
-  </div>
+    <select id="sortSelect" onchange="sortPlayers()">
+      <option value="alpha">Sort A-Z</option>
+      <option value="rank">Sort by Rank</option>
+    </select>
 
-  <div class="card">
-    <h2>💵 Pay Tax</h2>
-    <input type="text" class="input-box" id="username" placeholder="Enter your Minecraft name">
-    <input type="number" class="input-box" id="amount" placeholder="Amount to pay (or leave empty for full)">
-    <button class="btn" onclick="payTax()">Pay Tax</button>
-  </div>
-
-  <div class="card">
-    <h2>🐞 Report an Issue</h2>
-    <form class="report-form" onsubmit="reportIssue(event)">
-      <input type="text" class="input-box" id="reportUsername" placeholder="Your name">
-      <textarea rows="3" placeholder="Describe your issue..." id="reportText"></textarea>
-      <button type="submit" class="btn">Submit Report</button>
-    </form>
+    <div id="playerList"></div>
+    <div id="profile"></div>
   </div>
 
   <script>
-    const taxData = {
-      "Ansh_2613": 120,
-      "Saksham": 250,
-      "Steve": 75
+    const dummyData = {
+      "steve": {
+        totalTax: 150,
+        items: {"diamond": 70, "gold": 50, "iron": 30},
+        rank: 2
+      },
+      "alex": {
+        totalTax: 90,
+        items: {"gold": 40, "iron": 50},
+        rank: 5
+      },
+      "bedrock.player": {
+        totalTax: 200,
+        items: {"diamond": 100, "gold": 50, "emerald": 50},
+        rank: 1
+      }
     };
 
-    function renderTaxList() {
-      const list = document.getElementById('playerList');
-      list.innerHTML = '';
-      let topPlayer = '';
-      let topAmount = 0;
-      Object.entries(taxData).forEach(([name, amount]) => {
-        const div = document.createElement('div');
-        div.className = 'player-entry';
-        div.innerHTML = `<span>${name}</span><span>$${amount}</span>`;
-        list.appendChild(div);
-        if (amount > topAmount) {
-          topAmount = amount;
-          topPlayer = name;
-        }
+    function sortPlayers() {
+      const sortType = document.getElementById('sortSelect').value;
+      const sorted = Object.entries(dummyData).sort((a, b) => {
+        return sortType === 'alpha'
+          ? a[0].localeCompare(b[0])
+          : a[1].rank - b[1].rank;
       });
-      document.getElementById('topPlayer').textContent = topPlayer;
-      document.getElementById('topAmount').textContent = `$${topAmount}`;
+
+      const list = sorted.map(([name, data]) => `<div><a href="#" onclick="loadPlayer('${name}')">${name}</a> - Tax: $${data.totalTax}</div>`);
+      document.getElementById('playerList').innerHTML = list.join('');
     }
 
-    function payTax() {
-      const user = document.getElementById('username').value;
-      const amount = document.getElementById('amount').value;
-      if (!user) return alert("Please enter your name");
+    function loadPlayer(username = null) {
+      if (!username) username = document.getElementById('searchInput').value.trim();
+      if (!dummyData[username]) {
+        alert('Player not found');
+        return;
+      }
 
-      let payAmount = amount ? parseFloat(amount) : taxData[user] || 0;
-      if (payAmount === 0) return alert("No tax to pay.");
+      const data = dummyData[username];
+      const itemsHtml = Object.entries(data.items).map(([item, tax]) => `<tr><td>${item}</td><td>$${tax}</td></tr>`).join('');
+      document.getElementById('profile').innerHTML = `
+        <div class="profile-box">
+          <h2>Profile: ${username}</h2>
+          <p>Total Tax Due: <strong>$${data.totalTax}</strong></p>
 
-      alert(`Tax of $${payAmount} paid by ${user}.`);
-      taxData[user] = (taxData[user] || 0) - payAmount;
-      if (taxData[user] < 0) taxData[user] = 0;
-      renderTaxList();
+          <div class="tax-list">
+            <button onclick="toggleItems()">Toggle Tax Items</button>
+            <div id="itemTable" style="display: none;">
+              <table>
+                <tr><th>Item</th><th>Tax</th></tr>
+                ${itemsHtml}
+              </table>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button onclick="exitProfile()">1. Exit</button>
+            <button onclick="payTax('${username}')">2. Pay Tax</button>
+            <button onclick="advancePay('${username}')">3. Advance Pay</button>
+          </div>
+
+          <div id="amountInput" style="display:none; margin-top: 10px;">
+            <input type="number" id="taxAmount" placeholder="Enter amount to pay">
+            <button onclick="submitTax('${username}')">Submit</button>
+          </div>
+        </div>`;
     }
 
-    function reportIssue(e) {
-      e.preventDefault();
-      const name = document.getElementById('reportUsername').value;
-      const text = document.getElementById('reportText').value;
-      if (!name || !text) return alert("Please fill all fields.");
-      alert(`Issue reported by ${name}: ${text}`);
-      document.getElementById('reportUsername').value = '';
-      document.getElementById('reportText').value = '';
+    function toggleItems() {
+      const el = document.getElementById('itemTable');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
     }
 
-    renderTaxList();
+    function exitProfile() {
+      document.getElementById('profile').innerHTML = '';
+    }
+
+    function payTax(username) {
+      document.getElementById('amountInput').style.display = 'block';
+    }
+
+    function advancePay(username) {
+      document.getElementById('amountInput').style.display = 'block';
+    }
+
+    function submitTax(username) {
+      const amount = document.getElementById('taxAmount').value;
+      if (!amount || amount <= 0) {
+        alert('Enter a valid amount');
+        return;
+      }
+      const payload = {
+        username,
+        amount,
+        time: new Date().toISOString()
+      };
+
+      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `Tax Paid: ${username} paid $${amount}` })
+      }).then(() => {
+        alert('Payment submitted!');
+        exitProfile();
+      }).catch(() => alert('Webhook error'));
+    }
+
+    sortPlayers(); // Default sort
   </script>
 </body>
 </html>
