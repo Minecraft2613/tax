@@ -101,10 +101,30 @@
       let currentPlayer = '';
 
       window.onload = function() {
-        const password = prompt("Enter admin password for access to reset/refresh:");
-        if (password === "2613771894") {
+        if (localStorage.getItem('adminUnlocked') === 'true') {
           document.getElementById('adminTools').style.display = 'block';
+        } else {
+          const loginBtn = document.createElement('button');
+          loginBtn.textContent = '🔐 Admin Login';
+          loginBtn.style.background = '#444';
+          loginBtn.style.color = 'white';
+          loginBtn.style.padding = '10px';
+          loginBtn.style.marginTop = '20px';
+          loginBtn.style.border = 'none';
+          loginBtn.style.borderRadius = '5px';
+          loginBtn.onclick = function() {
+            const pw = prompt('Enter admin password:');
+            if (pw === '2613771894') {
+              localStorage.setItem('adminUnlocked', 'true');
+              document.getElementById('adminTools').style.display = 'block';
+              loginBtn.remove();
+            } else {
+              alert('Incorrect password');
+            }
+          };
+          document.querySelector('.container').appendChild(loginBtn);
         }
+      }
       }
 
       function resetAllData() {
