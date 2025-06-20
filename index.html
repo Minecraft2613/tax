@@ -90,7 +90,7 @@
     <div class="admin-tools" id="adminTools">
       <h3>🔧 Admin Tools</h3>
       <button onclick="refreshTaxData()">🔄 Refresh Tax Data</button>
-      <button onclick="resetAllData()">🧹 Reset All Tax Data</button>
+      
     </div>
 
     <script>
@@ -127,13 +127,7 @@
       }
       }
 
-      function resetAllData() {
-        if (confirm('⚠️ Are you sure you want to delete all tax data? This cannot be undone.')) {
-          localStorage.removeItem('paidPlayers');
-          localStorage.removeItem('paymentHistory');
-          localStorage.removeItem('taxLog');
-          location.reload();
-        }
+      
       }
 
       function refreshTaxData() {
@@ -192,7 +186,14 @@
           }
         });
 
-        localStorage.setItem('taxLog', JSON.stringify(dailyTax));
+        const prevHash = localStorage.getItem('lastHash');
+const newHash = btoa(content);
+if (prevHash !== newHash) {
+  localStorage.setItem('taxLog', JSON.stringify(dailyTax));
+  localStorage.setItem('lastHash', newHash);
+} else {
+  console.log('No new transactions detected.');
+}
         playerData = taxRecords;
         renderProfile(currentPlayer);
       }
