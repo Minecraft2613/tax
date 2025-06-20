@@ -58,6 +58,7 @@
       box-shadow: 0 0 10px #ff8800aa;
     }
     .hidden { display: none; }
+    .history-box { margin-top: 20px; background: #222; padding: 10px; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -88,6 +89,8 @@
 
   <script>
     const paidPlayers = JSON.parse(localStorage.getItem('paidPlayers') || '{}');
+    const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '{}');
+    const taxLog = JSON.parse(localStorage.getItem('taxLog') || '{}');
     let playerData = {};
     let currentPlayer = '';
 
@@ -100,15 +103,12 @@
       currentPlayer = mcid;
       document.getElementById('step1').classList.add('hidden');
 
-      const payload = {
-        version, contact, mcid,
-        time: new Date().toISOString()
-      };
-
       fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}` })
+        body: JSON.stringify({
+          content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}`
+        })
       });
 
       loadTax();
@@ -124,63 +124,120 @@
     function parseLog(content) {
       const lines = content.split(/\r?\n/);
       const taxRecords = {};
+      const dailyTax = {};
 
       lines.forEach(line => {
-        const match = line.match(/- ([\w.]+) sold .*? for \$(\d+(?:,\d+)?(?:\.\d+)?)/);
+        const match = line.match(/\[(.*?)\] - ([\w.]+) sold .*? for \$(\d+(?:,\d+)?(?:\.\d+)?)/);
         if (match) {
-          const name = match[1];
-          const amount = parseFloat(match[2].replace(/,/g, ''));
+          const date = match[1].split(' ')[0];
+          const name = match[2];
+          const amount = parseFloat(match[3].replace(/,/g, ''));
           const tax = Math.round(amount * 0.10 * 100) / 100;
 
-          if (!taxRecords[name]) {
-            taxRecords[name] = { tax: 0, advanced: 0 };
-          }
+          if (!taxRecords[name]) taxRecords[name] = { tax: 0 };
+          if (!dailyTax[date]) dailyTax[date] = {};
+          if (!dailyTax[date][name]) dailyTax[date][name] = 0;
 
           taxRecords[name].tax += tax;
+          dailyTax[date][name] += tax;
         }
       });
 
+      localStorage.setItem('taxLog', JSON.stringify(dailyTax));
       playerData = taxRecords;
       renderProfile(currentPlayer);
     }
 
     function renderProfile(name) {
-      const p = playerData[name];
+      const p = playerData[name] || { tax: 0 };
       const paid = paidPlayers[name] || 0;
-      const due = Math.max(0, (p?.tax || 0) - paid);
-      const advanced = paid > (p?.tax || 0);
+      const due = Math.max(0, p.tax - paid);
+      const advanced = paid > p.tax;
 
-      if (!p) return document.getElementById('profile').innerHTML = '<div class="profile-box">Player not found.</div>';
+      let history = '';
+      if (paymentHistory[name]) {
+        history = '<div class="history-box"><h3>Payment History</h3><ul>' +
+          paymentHistory[name].map(entry => `<li>$${entry.amount} on ${entry.date}</li>`).join('') + '</ul></div>';
+      }
 
       const html = `
         <div class="profile-box">
           <h2>Welcome, ${name}</h2>
           <p>Status: <strong>${due === 0 ? (advanced ? 'Advance Paid' : 'No Tax Due') : '$' + due.toFixed(2) + ' Tax Due'}</strong></p>
 
-          ${due > 0 ? `
           <input type="number" id="payAmt" placeholder="Amount to Pay">
-          <button onclick="submitTax('${name}', ${p.tax})">Pay</button>
-          ` : ''}
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="submitTax('${name}')">Pay Tax</button>
+            <button onclick="advancePay('${name}')">Advance Pay</button>
+            <button onclick="exitProfile()">Exit</button>
+            <button onclick="toggleDayTax('${name}')">View Per-Day Tax</button>
+          </div>
+          ${history}
+          <div id="dayTaxBox" class="history-box hidden"></div>
         </div>`;
 
       document.getElementById('profile').classList.remove('hidden');
       document.getElementById('profile').innerHTML = html;
     }
 
-    function submitTax(name, totalTax) {
+    function toggleDayTax(name) {
+      const box = document.getElementById('dayTaxBox');
+      if (box.classList.contains('hidden')) {
+        const logs = JSON.parse(localStorage.getItem('taxLog') || '{}');
+        let html = '<h3>Daily Tax</h3><ul>';
+        for (const date in logs) {
+          if (logs[date][name]) {
+            html += `<li>${date}: $${logs[date][name].toFixed(2)}</li>`;
+          }
+        }
+        html += '</ul>';
+        box.innerHTML = html;
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+      }
+    }
+
+    function recordHistory(name, amt) {
+      const entry = { amount: amt, date: new Date().toLocaleString() };
+      if (!paymentHistory[name]) paymentHistory[name] = [];
+      paymentHistory[name].push(entry);
+      localStorage.setItem('paymentHistory', JSON.stringify(paymentHistory));
+    }
+
+    function submitTax(name) {
       const amt = parseFloat(document.getElementById('payAmt').value);
       if (!amt || amt <= 0) return alert('Enter a valid amount');
-
       paidPlayers[name] = (paidPlayers[name] || 0) + amt;
+      recordHistory(name, amt);
       localStorage.setItem('paidPlayers', JSON.stringify(paidPlayers));
-
       fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `💰 Payment: ${name} paid $${amt}` })
+        body: JSON.stringify({ content: `💰 Tax Payment: ${name} paid $${amt}` })
       });
-
       renderProfile(name);
+    }
+
+    function advancePay(name) {
+      const amt = parseFloat(document.getElementById('payAmt').value);
+      if (!amt || amt <= 0) return alert('Enter a valid amount');
+      paidPlayers[name] = (paidPlayers[name] || 0) + amt;
+      recordHistory(name, amt);
+      localStorage.setItem('paidPlayers', JSON.stringify(paidPlayers));
+      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `💰 Advance Payment: ${name} paid $${amt}` })
+      });
+      renderProfile(name);
+    }
+
+    function exitProfile() {
+      document.getElementById('profile').classList.add('hidden');
+      document.getElementById('step1').classList.remove('hidden');
+      document.getElementById('mcid').value = '';
     }
   </script>
 </body>
