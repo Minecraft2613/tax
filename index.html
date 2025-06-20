@@ -1,334 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Player Tax System</title>
+  <meta charset="UTF-8" />
+  <title>💸 Player Tax Portal</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f0f0f, #1e1e1e);
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #0e0e0e, #1a1a1a);
+      color: white;
       padding: 20px;
-      animation: fadeIn 1s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    h1 {
       text-align: center;
-      color: #ffcc00;
-      animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { color: #ffcc00; }
-      50% { color: #ff8800; }
+    .hidden { display: none; }
+    .box {
+      max-width: 600px;
+      margin: auto;
+      background: #1f1f1f;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #444;
     }
-    label, select, input, button {
-      display: block;
-      width: 100%;
+    input, button {
       padding: 10px;
+      width: 100%;
       margin: 10px 0;
       font-size: 16px;
       border-radius: 5px;
-    }
-    input, select {
-      background: #222;
-      color: #fff;
-      border: 1px solid #444;
-    }
-    button {
-      background: #ff8800;
-      color: #000;
-      cursor: pointer;
       border: none;
     }
-    .profile-box {
-      margin-top: 20px;
-      padding: 20px;
-      background: #111;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ff8800aa;
+    input {
+      background: #333;
+      color: white;
     }
-    .hidden { display: none; }
-    .history-box { margin-top: 20px; background: #222; padding: 10px; border-radius: 8px; }
-    .admin-tools { margin-top: 30px; padding: 15px; background: #222; border-radius: 10px; display: none; }
+    button {
+      background: #ffaa00;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🧾 Player Tax Portal</h1>
+  <h1>💸 Player Tax Portal</h1>
 
-    <div id="step1">
-      <label for="version">Minecraft Version:</label>
-      <select id="version">
-        <option value="Java">Java</option>
-        <option value="Bedrock">Bedrock</option>
-      </select>
+  <div class="box" id="loginBox">
+    <input id="mcid" placeholder="Enter your Minecraft Username" />
+    <button onclick="nextStep()">Next</button>
+  </div>
 
-      <label for="contact">Contact Method:</label>
-      <select id="contact">
-        <option value="Discord">Discord</option>
-        <option value="Instagram">Instagram</option>
-      </select>
+  <div class="box hidden" id="profileBox"></div>
 
-      <label for="mcid">Minecraft Username (ID):</label>
-      <input type="text" id="mcid" placeholder="e.g. Steve or steve.123">
+  <script>
+    const TAX_FILE = "https://raw.githubusercontent.com/Minecraft2613/tax/main/transaction-log.txt";
 
-      <button onclick="nextStep()">Next</button>
-    </div>
+    let playerData = {}, currentPlayer = "";
 
-    <div id="profile" class="hidden"></div>
+    async function nextStep() {
+      const mcid = document.getElementById("mcid").value.trim().toLowerCase();
+      if (!mcid) return alert("Please enter your username");
+      currentPlayer = mcid;
+      document.getElementById("loginBox").classList.add("hidden");
+      await loadTax();
+    }
 
-    <div class="admin-tools" id="adminTools">
-      <h3>🔧 Admin Tools</h3>
-      <button onclick="refreshTaxData()">🔄 Refresh Tax Data</button>
-      
-    </div>
-
-    <script>
-      const paidPlayers = JSON.parse(localStorage.getItem('paidPlayers') || '{}');
-      const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '{}');
-      const taxLog = JSON.parse(localStorage.getItem('taxLog') || '{}');
-      let playerData = {};
-      let currentPlayer = '';
-
-      window.onload = function() {
-        if (localStorage.getItem('adminUnlocked') === 'true') {
-          document.getElementById('adminTools').style.display = 'block';
-        } else {
-          const loginBtn = document.createElement('button');
-          loginBtn.textContent = '🔐 Admin Login';
-          loginBtn.style.background = '#444';
-          loginBtn.style.color = 'white';
-          loginBtn.style.padding = '10px';
-          loginBtn.style.marginTop = '20px';
-          loginBtn.style.border = 'none';
-          loginBtn.style.borderRadius = '5px';
-          loginBtn.onclick = function() {
-            const pw = prompt('Enter admin password:');
-            if (pw === '2613771894') {
-              localStorage.setItem('adminUnlocked', 'true');
-              document.getElementById('adminTools').style.display = 'block';
-              loginBtn.remove();
-            } else {
-              alert('Incorrect password');
-            }
-          };
-          document.querySelector('.container').appendChild(loginBtn);
-        }
-      }
-      }
-
-      
-      }
-
-      function refreshTaxData() {
-        if (confirm('Refresh tax data from the latest file? This will not delete payment history.')) {
-          localStorage.removeItem('taxLog');
-          location.reload();
-        }
-      }
-
-      async function nextStep() {
-  const version = document.getElementById('version').value;
-  const contact = document.getElementById('contact').value;
-  const mcid = document.getElementById('mcid').value.trim();
-
-  console.log("MCID:", mcid, "Version:", version, "Contact:", contact);
-
-  if (!mcid) {
-    alert('Please enter a Minecraft ID');
-    return;
-  }
-
-  currentPlayer = mcid;
-  document.getElementById('step1').classList.add('hidden');
-
-  try {
-    await fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}`
-      })
-    });
-  } catch (e) {
-    console.warn("Webhook failed:", e);
-  }
-
-  loadTax();
-}
-window.nextStep = nextStep;
-
-  currentPlayer = mcid;
-  document.getElementById('step1').classList.add('hidden');
-
-  try {
-    await fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `📥 New Entry:
-Version: ${version}
-Contact: ${contact}
-Minecraft ID: ${mcid}`
-      })
-    });
-  } catch (e) {
-    console.warn("Webhook failed:", e);
-  }
-
-  loadTax();
-},
-          body: JSON.stringify({
-            content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}`
-          })
-        });
-
-        loadTax();
-      }
-
-      async function loadTax() {
-        const url = 'https://raw.githubusercontent.com/Minecraft2613/tax/main/transaction-log.txt';
-        const res = await fetch(url);
+    async function loadTax() {
+      try {
+        const res = await fetch(TAX_FILE);
         const log = await res.text();
         parseLog(log);
+      } catch (err) {
+        alert("❌ Failed to load transaction log.");
+        console.error(err);
       }
+    }
 
-      function parseLog(content) {
-        const lines = content.split(/\r?\n/);
-        const taxRecords = {};
-        const dailyTax = {};
+    function parseLog(content) {
+      const lines = content.split(/\r?\n/);
+      const data = {};
+      const buyRegex = /\[(.*?)\] - (\w+)\s+bought\s+.*?for\s+\$([\d,]+\.\d{2})\s+with/i;
+      const sellRegex = /\[(.*?)\] - (\w+)\s+sold\s+.*?for\s+\$([\d,]+\.\d{2})\s+with/i;
 
-        lines.forEach(line => {
-          const match = line.match(/\[(.*?)\] - ([\w.]+) sold .*? for \$(\d+(?:,\d+)?(?:\.\d+)?)/);
-          if (match) {
-            const date = match[1].split(' ')[0];
-            const name = match[2];
-            const amount = parseFloat(match[3].replace(/,/g, ''));
-            const tax = Math.round(amount * 0.10 * 100) / 100;
-
-            if (!taxRecords[name]) taxRecords[name] = { tax: 0 };
-            if (!dailyTax[date]) dailyTax[date] = {};
-            if (!dailyTax[date][name]) dailyTax[date][name] = 0;
-
-            taxRecords[name].tax += tax;
-            dailyTax[date][name] += tax;
-          }
-        });
-
-        const prevHash = localStorage.getItem('lastHash');
-const newHash = btoa(content);
-if (prevHash !== newHash) {
-  localStorage.setItem('taxLog', JSON.stringify(dailyTax));
-  localStorage.setItem('lastHash', newHash);
-} else {
-  console.log('No new transactions detected.');
-}
-        playerData = taxRecords;
-        renderProfile(currentPlayer);
-      }
-
-      function renderProfile(name) {
-        const p = playerData[name] || { tax: 0 };
-        const paid = paidPlayers[name] || 0;
-        const due = Math.max(0, p.tax - paid);
-        const advanced = paid > p.tax;
-
-        let history = '';
-        if (paymentHistory[name]) {
-          history = '<div class="history-box"><h3>Payment History</h3><ul>' +
-            paymentHistory[name].map(entry => `<li>$${entry.amount} on ${entry.date}</li>`).join('') + '</ul></div>';
+      lines.forEach(line => {
+        let match;
+        if ((match = line.match(buyRegex))) {
+          const [_, datetime, player, amountStr] = match;
+          const amount = parseFloat(amountStr.replace(/,/g, ""));
+          const tax = +(amount * 0.04).toFixed(2);
+          const date = datetime.split(" ")[0];
+          addTax(data, player.toLowerCase(), 0, tax, date);
+        } else if ((match = line.match(sellRegex))) {
+          const [_, datetime, player, amountStr] = match;
+          const amount = parseFloat(amountStr.replace(/,/g, ""));
+          const tax = +(amount * 0.10).toFixed(2);
+          const date = datetime.split(" ")[0];
+          addTax(data, player.toLowerCase(), tax, 0, date);
         }
+      });
 
-        const html = `
-          <div class="profile-box">
-            <h2>Welcome, ${name}</h2>
-            <p>Status: <strong>${due === 0 ? (advanced ? 'Advance Paid' : 'No Tax Due') : '$' + due.toFixed(2) + ' Tax Due'}</strong></p>
+      playerData = data;
+      renderProfile(currentPlayer);
+    }
 
-            <input type="number" id="payAmt" placeholder="Amount to Pay">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <button onclick="submitTax('${name}')">Pay Tax</button>
-              <button onclick="advancePay('${name}')">Advance Pay</button>
-              <button onclick="exitProfile()">Exit</button>
-              <button onclick="toggleDayTax('${name}')">View Per-Day Tax</button>
-            </div>
-            ${history}
-            <div id="dayTaxBox" class="history-box hidden"></div>
-          </div>`;
+    function addTax(data, player, sellTax, buyTax, date) {
+      if (!data[player]) data[player] = { sell: 0, buy: 0, days: {} };
+      data[player].sell += sellTax;
+      data[player].buy += buyTax;
+      data[player].days[date] = (data[player].days[date] || 0) + sellTax + buyTax;
+    }
 
-        document.getElementById('profile').classList.remove('hidden');
-        document.getElementById('profile').innerHTML = html;
+    function renderProfile(player) {
+      const record = playerData[player];
+
+      if (!record) {
+        document.getElementById("profileBox").innerHTML = `
+          <h2>${player}</h2>
+          <p>❌ Tax not found for this player.</p>
+          <button onclick="logout()">Try Another</button>
+        `;
+        document.getElementById("profileBox").classList.remove("hidden");
+        return;
       }
 
-      function toggleDayTax(name) {
-        const box = document.getElementById('dayTaxBox');
-        if (box.classList.contains('hidden')) {
-          const logs = JSON.parse(localStorage.getItem('taxLog') || '{}');
-          let html = '<h3>Daily Tax</h3><ul>';
-          for (const date in logs) {
-            if (logs[date][name]) {
-              html += `<li>${date}: $${logs[date][name].toFixed(2)}</li>`;
-            }
-          }
-          html += '</ul>';
-          box.innerHTML = html;
-          box.classList.remove('hidden');
-        } else {
-          box.classList.add('hidden');
-          box.innerHTML = '';
-        }
+      const buyTax = record.buy.toFixed(2);
+      const sellTax = record.sell.toFixed(2);
+      const total = (record.buy + record.sell).toFixed(2);
+
+      let daily = '';
+      for (let d in record.days) {
+        daily += `<li>${d}: $${record.days[d].toFixed(2)}</li>`;
       }
 
-      function recordHistory(name, amt) {
-        const entry = { amount: amt, date: new Date().toLocaleString() };
-        if (!paymentHistory[name]) paymentHistory[name] = [];
-        paymentHistory[name].push(entry);
-        localStorage.setItem('paymentHistory', JSON.stringify(paymentHistory));
-      }
+      document.getElementById("profileBox").innerHTML = `
+        <h2>Welcome, ${player}</h2>
+        <p><strong>🛒 Buying Tax (4%):</strong> $${buyTax}</p>
+        <p><strong>📦 Selling Tax (10%):</strong> $${sellTax}</p>
+        <p><strong>💰 Total Tax:</strong> $${total}</p>
+        ${daily ? `<h3>📅 Daily Breakdown</h3><ul>${daily}</ul>` : ""}
+        <button onclick="logout()">Logout</button>
+      `;
+      document.getElementById("profileBox").classList.remove("hidden");
+    }
 
-      function submitTax(name) {
-        const amt = parseFloat(document.getElementById('payAmt').value);
-        if (!amt || amt <= 0) return alert('Enter a valid amount');
-        paidPlayers[name] = (paidPlayers[name] || 0) + amt;
-        recordHistory(name, amt);
-        localStorage.setItem('paidPlayers', JSON.stringify(paidPlayers));
-        fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `💰 Tax Payment: ${name} paid $${amt}` })
-        });
-        renderProfile(name);
-      }
-
-      function advancePay(name) {
-        const amt = parseFloat(document.getElementById('payAmt').value);
-        if (!amt || amt <= 0) return alert('Enter a valid amount');
-        paidPlayers[name] = (paidPlayers[name] || 0) + amt;
-        recordHistory(name, amt);
-        localStorage.setItem('paidPlayers', JSON.stringify(paidPlayers));
-        fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `💰 Advance Payment: ${name} paid $${amt}` })
-        });
-        renderProfile(name);
-      }
-
-      function exitProfile() {
-        document.getElementById('profile').classList.add('hidden');
-        document.getElementById('step1').classList.remove('hidden');
-        document.getElementById('mcid').value = '';
-      }
-    </script>
-  </div>
+    function logout() {
+      document.getElementById("profileBox").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("mcid").value = "";
+    }
+  </script>
 </body>
 </html>
