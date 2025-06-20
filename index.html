@@ -138,17 +138,56 @@
       }
 
       async function nextStep() {
-        const version = document.getElementById('version').value;
-        const contact = document.getElementById('contact').value;
-        const mcid = document.getElementById('mcid').value.trim();
-        if (!mcid) return alert('Please enter a Minecraft ID');
+  const version = document.getElementById('version').value;
+  const contact = document.getElementById('contact').value;
+  const mcid = document.getElementById('mcid').value.trim();
 
-        currentPlayer = mcid;
-        document.getElementById('step1').classList.add('hidden');
+  console.log("MCID:", mcid, "Version:", version, "Contact:", contact);
 
-        fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+  if (!mcid) {
+    alert('Please enter a Minecraft ID');
+    return;
+  }
+
+  currentPlayer = mcid;
+  document.getElementById('step1').classList.add('hidden');
+
+  try {
+    await fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}`
+      })
+    });
+  } catch (e) {
+    console.warn("Webhook failed:", e);
+  }
+
+  loadTax();
+}
+window.nextStep = nextStep;
+
+  currentPlayer = mcid;
+  document.getElementById('step1').classList.add('hidden');
+
+  try {
+    await fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `📥 New Entry:
+Version: ${version}
+Contact: ${contact}
+Minecraft ID: ${mcid}`
+      })
+    });
+  } catch (e) {
+    console.warn("Webhook failed:", e);
+  }
+
+  loadTax();
+},
           body: JSON.stringify({
             content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}`
           })
