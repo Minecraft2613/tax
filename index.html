@@ -1,99 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Minecraft Sales Viewer</title>
+  <meta charset="UTF-8">
+  <title>Economy Tax Viewer</title>
   <style>
     body {
-      background: #1e1e1e;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      text-align: center;
+      font-family: Arial, sans-serif;
+      background: #0e0e0e;
+      color: #e0e0e0;
       margin: 0;
-      padding: 2rem;
+      padding: 0;
+    }
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
     }
     h1 {
-      color: #ffcc00;
+      text-align: center;
     }
-    #searchBox {
-      margin-bottom: 20px;
+    input, select, button {
       padding: 10px;
-      width: 300px;
+      margin: 10px 0;
       font-size: 16px;
     }
-    table {
-      margin: auto;
+    .profile-box {
+      border: 1px solid #555;
+      padding: 15px;
+      margin-top: 20px;
+      background: #1e1e1e;
+    }
+    .tax-list {
+      margin-top: 10px;
+    }
+    .tax-list table {
+      width: 100%;
       border-collapse: collapse;
-      width: 80%;
-      background: #2b2b2b;
     }
-    th, td {
-      padding: 10px;
+    .tax-list th, .tax-list td {
       border: 1px solid #444;
+      padding: 8px;
+      text-align: left;
     }
-    th {
-      background: #3c3c3c;
-    }
-    tr:hover {
-      background: #444;
-    }
-    .loading {
-      font-style: italic;
-      color: #aaa;
+    .button-group button {
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Minecraft Player Sales Report</h1>
+  <div class="container">
+    <h1>Player Tax Viewer</h1>
 
-  <input type="text" id="searchBox" placeholder="Search by player name..." onkeyup="filterTable()"/>
+    <input type="text" id="searchInput" placeholder="Enter player name (. allowed)">
+    <button onclick="loadPlayer()">View Profile</button>
 
-  <p id="status" class="loading">Loading transactions.json (please wait)...</p>
+    <select id="sortSelect" onchange="sortPlayers()">
+      <option value="alpha">Sort A-Z</option>
+      <option value="rank">Sort by Rank</option>
+    </select>
 
-  <table id="salesTable" style="display:none">
-    <thead>
-      <tr><th>Player</th><th>Total Sold ($)</th></tr>
-    </thead>
-    <tbody id="salesBody"></tbody>
-  </table>
+    <div id="playerList"></div>
+    <div id="profile"></div>
+  </div>
 
   <script>
-    let rawData = {};
-    const statusEl = document.getElementById("status");
-    const table = document.getElementById("salesTable");
-    const tbody = document.getElementById("salesBody");
+    const dummyData = {};
 
-    fetch("transactions.json")
-      .then(res => res.json())
-      .then(data => {
-        rawData = data;
-
-        const sorted = Object.entries(data).sort((a, b) => b[1].total - a[1].total);
-
-        for (const [name, info] of sorted) {
-          const row = document.createElement("tr");
-          row.innerHTML = `<td>${name}</td><td>$${info.total.toFixed(2)}</td>`;
-          tbody.appendChild(row);
-        }
-
-        statusEl.remove();
-        table.style.display = "table";
-      })
-      .catch(err => {
-        statusEl.innerText = "❌ Failed to load transactions.json";
-        console.error(err);
+    function sortPlayers() {
+      const sortType = document.getElementById('sortSelect').value;
+      const sorted = Object.entries(dummyData).sort((a, b) => {
+        return sortType === 'alpha'
+          ? a[0].localeCompare(b[0])
+          : a[1].rank - b[1].rank;
       });
 
-    function filterTable() {
-      const query = document.getElementById("searchBox").value.toLowerCase();
-      const rows = tbody.getElementsByTagName("tr");
+      const list = sorted.map(([name, data]) => `<div><a href="#" onclick="loadPlayer('${name}')">${name}</a> - Tax: $${data.totalTax.toFixed(2)}</div>`);
+      document.getElementById('playerList').innerHTML = list.join('');
+    }
 
-      for (let i = 0; i < rows.length; i++) {
-        const player = rows[i].getElementsByTagName("td")[0].innerText.toLowerCase();
-        rows[i].style.display = player.includes(query) ? "" : "none";
+    function loadPlayer(username = null) {
+      if (!username) username = document.getElementById('searchInput').value.trim();
+      if (!dummyData[username]) {
+        alert('Player not found');
+        return;
+      }
+
+      const data = dummyData[username];
+      const itemsHtml = Object.entries(data.items).map(([item, tax]) => `<tr><td>${item}</td><td>$${tax.toFixed(2)}</td></tr>`).join('');
+      document.getElementById('profile').innerHTML = `
+        <div class="profile-box">
+          <h2>Profile: ${username}</h2>
+          <p>Total Tax Due: <strong>$${data.totalTax.toFixed(2)}</strong></p>
+
+          <div class="tax-list">
+            <button onclick="toggleItems()">Toggle Tax Items</button>
+            <div id="itemTable" style="display: none;">
+              <table>
+                <tr><th>Item</th><th>Tax</th></tr>
+                ${itemsHtml}
+              </table>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button onclick="exitProfile()">1. Exit</button>
+            <button onclick="payTax('${username}')">2. Pay Tax</button>
+            <button onclick="advancePay('${username}')">3. Advance Pay</button>
+          </div>
+
+          <div id="amountInput" style="display:none; margin-top: 10px;">
+            <input type="number" id="taxAmount" placeholder="Enter amount to pay">
+            <button onclick="submitTax('${username}')">Submit</button>
+          </div>
+        </div>`;
+    }
+
+    function toggleItems() {
+      const el = document.getElementById('itemTable');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function exitProfile() {
+      document.getElementById('profile').innerHTML = '';
+    }
+
+    function payTax(username) {
+      document.getElementById('amountInput').style.display = 'block';
+    }
+
+    function advancePay(username) {
+      document.getElementById('amountInput').style.display = 'block';
+    }
+
+    function submitTax(username) {
+      const amount = document.getElementById('taxAmount').value;
+      if (!amount || amount <= 0) {
+        alert('Enter a valid amount');
+        return;
+      }
+      const payload = {
+        username,
+        amount,
+        time: new Date().toISOString()
+      };
+
+      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `Tax Paid: ${username} paid $${amount}` })
+      }).then(() => {
+        alert('Payment submitted!');
+        exitProfile();
+      }).catch(() => alert('Webhook error'));
+    }
+
+    async function fetchAndParseLog() {
+      const rawUrl = 'https://raw.githubusercontent.com/Minecraft2613/tax/main/transaction-log.txt';
+      try {
+        const response = await fetch(rawUrl);
+        const content = await response.text();
+        parseTransactions(content);
+      } catch (err) {
+        console.error('Error loading transaction log:', err);
       }
     }
+
+    function parseTransactions(content) {
+      const lines = content.split(/\r?\n/);
+      const taxData = {};
+
+      lines.forEach(line => {
+        const match = line.match(/- ([\w.]+) sold .*? for \$(\d+(?:,\d+)?(?:\.\d+)?)/);
+        if (match) {
+          const name = match[1];
+          const amount = parseFloat(match[2].replace(/,/g, ''));
+          const tax = amount * 0.10;
+          if (!taxData[name]) taxData[name] = { totalTax: 0, items: {}, rank: 999 };
+          taxData[name].totalTax += tax;
+          taxData[name].items['Mixed Items'] = (taxData[name].items['Mixed Items'] || 0) + tax;
+        }
+      });
+
+      Object.assign(dummyData, taxData);
+      sortPlayers();
+    }
+
+    fetchAndParseLog();
   </script>
 </body>
 </html>
