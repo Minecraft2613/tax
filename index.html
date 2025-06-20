@@ -2,190 +2,186 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Economy Tax Viewer</title>
+  <title>Player Tax System</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #0e0e0e;
-      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1e1e1e);
+      color: #fff;
       margin: 0;
       padding: 0;
+      overflow-x: hidden;
     }
     .container {
-      padding: 20px;
-      max-width: 900px;
+      max-width: 800px;
       margin: auto;
+      padding: 20px;
+      animation: fadeIn 1s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     h1 {
       text-align: center;
+      color: #ffcc00;
+      animation: pulse 2s infinite;
     }
-    input, select, button {
+    @keyframes pulse {
+      0%, 100% { color: #ffcc00; }
+      50% { color: #ff8800; }
+    }
+    label, select, input, button {
+      display: block;
+      width: 100%;
       padding: 10px;
       margin: 10px 0;
       font-size: 16px;
+      border-radius: 5px;
+    }
+    input, select {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    button {
+      background: #ff8800;
+      color: #000;
+      cursor: pointer;
+      border: none;
     }
     .profile-box {
-      border: 1px solid #555;
-      padding: 15px;
       margin-top: 20px;
-      background: #1e1e1e;
+      padding: 20px;
+      background: #111;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ff8800aa;
     }
-    .tax-list {
-      margin-top: 10px;
-    }
-    .tax-list table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .tax-list th, .tax-list td {
-      border: 1px solid #444;
-      padding: 8px;
-      text-align: left;
-    }
-    .button-group button {
-      margin-right: 10px;
-    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Player Tax Viewer</h1>
+    <h1>🧾 Player Tax Portal</h1>
 
-    <input type="text" id="searchInput" placeholder="Enter player name (. allowed)">
-    <button onclick="loadPlayer()">View Profile</button>
+    <div id="step1">
+      <label for="version">Minecraft Version:</label>
+      <select id="version">
+        <option value="Java">Java</option>
+        <option value="Bedrock">Bedrock</option>
+      </select>
 
-    <select id="sortSelect" onchange="sortPlayers()">
-      <option value="alpha">Sort A-Z</option>
-      <option value="rank">Sort by Rank</option>
-    </select>
+      <label for="contact">Contact Method:</label>
+      <select id="contact">
+        <option value="Discord">Discord</option>
+        <option value="Instagram">Instagram</option>
+      </select>
 
-    <div id="playerList"></div>
-    <div id="profile"></div>
+      <label for="mcid">Minecraft Username (ID):</label>
+      <input type="text" id="mcid" placeholder="e.g. Steve or steve.123">
+
+      <button onclick="nextStep()">Next</button>
+    </div>
+
+    <div id="profile" class="hidden"></div>
   </div>
 
   <script>
-    const dummyData = {};
+    const paidPlayers = JSON.parse(localStorage.getItem('paidPlayers') || '{}');
+    let playerData = {};
+    let currentPlayer = '';
 
-    function sortPlayers() {
-      const sortType = document.getElementById('sortSelect').value;
-      const sorted = Object.entries(dummyData).sort((a, b) => {
-        return sortType === 'alpha'
-          ? a[0].localeCompare(b[0])
-          : a[1].rank - b[1].rank;
-      });
+    async function nextStep() {
+      const version = document.getElementById('version').value;
+      const contact = document.getElementById('contact').value;
+      const mcid = document.getElementById('mcid').value.trim();
+      if (!mcid) return alert('Please enter a Minecraft ID');
 
-      const list = sorted.map(([name, data]) => `<div><a href="#" onclick="loadPlayer('${name}')">${name}</a> - Tax: $${data.totalTax.toFixed(2)}</div>`);
-      document.getElementById('playerList').innerHTML = list.join('');
-    }
+      currentPlayer = mcid;
+      document.getElementById('step1').classList.add('hidden');
 
-    function loadPlayer(username = null) {
-      if (!username) username = document.getElementById('searchInput').value.trim();
-      if (!dummyData[username]) {
-        alert('Player not found');
-        return;
-      }
-
-      const data = dummyData[username];
-      const itemsHtml = Object.entries(data.items).map(([item, tax]) => `<tr><td>${item}</td><td>$${tax.toFixed(2)}</td></tr>`).join('');
-      document.getElementById('profile').innerHTML = `
-        <div class="profile-box">
-          <h2>Profile: ${username}</h2>
-          <p>Total Tax Due: <strong>$${data.totalTax.toFixed(2)}</strong></p>
-
-          <div class="tax-list">
-            <button onclick="toggleItems()">Toggle Tax Items</button>
-            <div id="itemTable" style="display: none;">
-              <table>
-                <tr><th>Item</th><th>Tax</th></tr>
-                ${itemsHtml}
-              </table>
-            </div>
-          </div>
-
-          <div class="button-group">
-            <button onclick="exitProfile()">1. Exit</button>
-            <button onclick="payTax('${username}')">2. Pay Tax</button>
-            <button onclick="advancePay('${username}')">3. Advance Pay</button>
-          </div>
-
-          <div id="amountInput" style="display:none; margin-top: 10px;">
-            <input type="number" id="taxAmount" placeholder="Enter amount to pay">
-            <button onclick="submitTax('${username}')">Submit</button>
-          </div>
-        </div>`;
-    }
-
-    function toggleItems() {
-      const el = document.getElementById('itemTable');
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function exitProfile() {
-      document.getElementById('profile').innerHTML = '';
-    }
-
-    function payTax(username) {
-      document.getElementById('amountInput').style.display = 'block';
-    }
-
-    function advancePay(username) {
-      document.getElementById('amountInput').style.display = 'block';
-    }
-
-    function submitTax(username) {
-      const amount = document.getElementById('taxAmount').value;
-      if (!amount || amount <= 0) {
-        alert('Enter a valid amount');
-        return;
-      }
       const payload = {
-        username,
-        amount,
+        version, contact, mcid,
         time: new Date().toISOString()
       };
 
-      fetch('https://discordapp.com/api/webhooks/1385267628842684526/7aw6Ms9TLRUHfEvQK0Y6aQvj8zwy4TS0WIgdRQe0iGcOZeZg3r95gT3UTep4jhK3NhWZ', {
+      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `Tax Paid: ${username} paid $${amount}` })
-      }).then(() => {
-        alert('Payment submitted!');
-        exitProfile();
-      }).catch(() => alert('Webhook error'));
+        body: JSON.stringify({ content: `📥 New Entry:\nVersion: ${version}\nContact: ${contact}\nMinecraft ID: ${mcid}` })
+      });
+
+      loadTax();
     }
 
-    async function fetchAndParseLog() {
-      const rawUrl = 'https://raw.githubusercontent.com/Minecraft2613/tax/main/transaction-log.txt';
-      try {
-        const response = await fetch(rawUrl);
-        const content = await response.text();
-        parseTransactions(content);
-      } catch (err) {
-        console.error('Error loading transaction log:', err);
-      }
+    async function loadTax() {
+      const url = 'https://raw.githubusercontent.com/Minecraft2613/tax/main/transaction-log.txt';
+      const res = await fetch(url);
+      const log = await res.text();
+      parseLog(log);
     }
 
-    function parseTransactions(content) {
+    function parseLog(content) {
       const lines = content.split(/\r?\n/);
-      const taxData = {};
+      const taxRecords = {};
 
       lines.forEach(line => {
         const match = line.match(/- ([\w.]+) sold .*? for \$(\d+(?:,\d+)?(?:\.\d+)?)/);
         if (match) {
           const name = match[1];
           const amount = parseFloat(match[2].replace(/,/g, ''));
-          const tax = amount * 0.10;
-          if (!taxData[name]) taxData[name] = { totalTax: 0, items: {}, rank: 999 };
-          taxData[name].totalTax += tax;
-          taxData[name].items['Mixed Items'] = (taxData[name].items['Mixed Items'] || 0) + tax;
+          const tax = Math.round(amount * 0.10 * 100) / 100;
+
+          if (!taxRecords[name]) {
+            taxRecords[name] = { tax: 0, advanced: 0 };
+          }
+
+          taxRecords[name].tax += tax;
         }
       });
 
-      Object.assign(dummyData, taxData);
-      sortPlayers();
+      playerData = taxRecords;
+      renderProfile(currentPlayer);
     }
 
-    fetchAndParseLog();
+    function renderProfile(name) {
+      const p = playerData[name];
+      const paid = paidPlayers[name] || 0;
+      const due = Math.max(0, (p?.tax || 0) - paid);
+      const advanced = paid > (p?.tax || 0);
+
+      if (!p) return document.getElementById('profile').innerHTML = '<div class="profile-box">Player not found.</div>';
+
+      const html = `
+        <div class="profile-box">
+          <h2>Welcome, ${name}</h2>
+          <p>Status: <strong>${due === 0 ? (advanced ? 'Advance Paid' : 'No Tax Due') : '$' + due.toFixed(2) + ' Tax Due'}</strong></p>
+
+          ${due > 0 ? `
+          <input type="number" id="payAmt" placeholder="Amount to Pay">
+          <button onclick="submitTax('${name}', ${p.tax})">Pay</button>
+          ` : ''}
+        </div>`;
+
+      document.getElementById('profile').classList.remove('hidden');
+      document.getElementById('profile').innerHTML = html;
+    }
+
+    function submitTax(name, totalTax) {
+      const amt = parseFloat(document.getElementById('payAmt').value);
+      if (!amt || amt <= 0) return alert('Enter a valid amount');
+
+      paidPlayers[name] = (paidPlayers[name] || 0) + amt;
+      localStorage.setItem('paidPlayers', JSON.stringify(paidPlayers));
+
+      fetch('https://discordapp.com/api/webhooks/YOUR_WEBHOOK_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `💰 Payment: ${name} paid $${amt}` })
+      });
+
+      renderProfile(name);
+    }
   </script>
 </body>
 </html>
