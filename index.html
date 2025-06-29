@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Bank Web</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --mc-green: #388e3c;
+      --mc-dark: #232927;
+      --mc-light: #e8f5e9;
+      --mc-black: #181c1b;
+      --mc-accent: #43a047;
+      --mc-error: #e53935;
+      --mc-yellow: #ffa000;
+      --mc-blue: #1976d2;
+      --mc-shadow: 0 2px 8px #0002;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      background: var(--mc-light);
+      color: #222;
+      min-height: 100vh;
+    }
+    .dark {
+      background: var(--mc-black);
+      color: #eee;
+    }
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: var(--mc-shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: background 0.2s;
+    }
+    .dark .card {
+      background: var(--mc-dark);
+    }
+    h1, h2, h3, h4 {
+      margin: 0 0 12px 0;
+      font-weight: 700;
+    }
+    .input, select {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: 1rem;
+      background: #fafafa;
+      transition: border 0.2s;
+    }
+    .dark .input, .dark select {
+      background: #232927;
+      color: #eee;
+      border: 1px solid #444;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--mc-green);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      margin-right: 8px;
+      transition: background 0.2s;
+    }
+    .btn:active {
+      background: var(--mc-accent);
+    }
+    .btn-outline {
+      background: none;
+      color: var(--mc-green);
+      border: 2px solid var(--mc-green);
+    }
+    .btn-danger {
+      background: var(--mc-error);
+      color: #fff;
+    }
+    .btn-copy {
+      background: var(--mc-blue);
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      margin-left: 6px;
+    }
+    .flex {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .center {
+      text-align: center;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--mc-accent);
+      color: #fff;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px auto;
+      font-weight: 700;
+    }
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 220px;
+      height: 100vh;
+      background: var(--mc-green);
+      color: #fff;
+      z-index: 1000;
+      transform: translateX(-100%);
+      transition: transform 0.2s;
+      padding: 24px 0 0 0;
+      box-shadow: var(--mc-shadow);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+    }
+    .sidebar .avatar {
+      background: #fff;
+      color: var(--mc-green);
+      margin-bottom: 8px;
+    }
+    .sidebar .menu {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .sidebar .menu li {
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      border-left: 4px solid transparent;
+      transition: background 0.2s, border 0.2s;
+    }
+    .sidebar .menu li.active, .sidebar .menu li:hover {
+      background: #fff2;
+      border-left: 4px solid #fff;
+    }
+    .sidebar .logout {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+    }
+    .menu-btn {
+      position: fixed;
+      top: 16px; left: 16px;
+      background: var(--mc-green);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      font-size: 1.5rem;
+      z-index: 1100;
+      cursor: pointer;
+      box-shadow: var(--mc-shadow);
+    }
+    .dark .menu-btn {
+      background: var(--mc-accent);
+    }
+    .profile-pic {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--mc-accent);
+      color: #fff;
+      font-size: 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--mc-green);
+      color: #fff;
+      padding: 12px 16px;
+      box-shadow: var(--mc-shadow);
+      position: sticky;
+      top: 0;
+      z-index: 900;
+    }
+    .toggle-dark {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .chart {
+      width: 100%;
+      height: 120px;
+      background: #263238;
+      border-radius: 8px;
+      margin: 12px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .chart svg {
+      width: 100%;
+      height: 100%;
+    }
+    .file-upload {
+      margin-bottom: 12px;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 6px; }
+      .card { padding: 12px; }
+      .sidebar { width: 80vw; }
+      .sidebar .menu li { font-size: 1rem; }
+      .topbar { padding: 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    // --- UTILS ---
+    function daysAgo(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().split("T")[0];
+    }
+    function generateBankId() {
+      return "BANK" + (100000 + Math.floor(Math.random() * 900000));
+    }
+    function getLS(key, fallback) {
+      try {
+        const val = JSON.parse(localStorage.getItem(key));
+        return val !== null ? val : fallback;
+      } catch { return fallback; }
+    }
+    function setLS(key, val) {
+      localStorage.setItem(key, JSON.stringify(val));
+    }
+    function injectTestData() {
+      if (!getLS("users", []).length) setLS("users", [{
+        bankId: "BANK006443",
+        password: "26",
+        bankName: "Creeper Bank",
+        mcEdition: "Java",
+        mcName: "Steve",
+        balance: 5000,
+        profilePic: "",
+      }]);
+      if (!getLS("taxes", []).length) setLS("taxes", [{
+        bankId: "BANK006443",
+        selling: 120,
+        buying: 80,
+        total: 200,
+        paid: 100,
+        history: [
+          { date: daysAgo(1), selling: 20, buying: 10, total: 30, paid: 30 },
+          { date: daysAgo(2), selling: 30, buying: 20, total: 50, paid: 0 },
+          { date: daysAgo(3), selling: 40, buying: 30, total: 70, paid: 50 },
+          { date: daysAgo(4), selling: 10, buying: 20, total: 30, paid: 20 },
+          { date: daysAgo(5), selling: 20, buying: 0, total: 20, paid: 0 },
+          { date: daysAgo(6), selling: 0, buying: 0, total: 0, paid: 0 },
+          { date: daysAgo(7), selling: 0, buying: 0, total: 0, paid: 0 },
+        ],
+        payments: [
+          { date: daysAgo(1), amount: 30 },
+          { date: daysAgo(3), amount: 50 },
+          { date: daysAgo(4), amount: 20 },
+          { date: daysAgo(0), amount: 0 },
+        ],
+      }]);
+      if (!getLS("loans", []).length) setLS("loans", [
+        {
+          bankId: "BANK006443",
+          type: "Personal Loan",
+          amount: 1000,
+          duration: 2,
+          interest: 7,
+          status: "Pending",
+          reason: "Need to buy diamond pickaxe",
+          appliedAt: daysAgo(2),
+          extra: { name: "Steve", job: "Miner", perDayIncome: 200 },
+        },
+        {
+          bankId: "BANK006443",
+          type: "Home Loan",
+          amount: 5000,
+          duration: 3,
+          interest: 4,
+          status: "Approved",
+          reason: "Expand my Minecraft house",
+          appliedAt: daysAgo(5),
+          extra: { coords: ["100,64,100", "110,64,110"], pic: "" },
+        },
+      ]);
+      if (!getLS("transactions", []).length) setLS("transactions", [
+        {
+          bankId: "BANK006443",
+          type: "Shop",
+          amount: -200,
+          date: daysAgo(1),
+          desc: "Bought enchanted book",
+        },
+        {
+          bankId: "BANK006443",
+          type: "Job",
+          amount: 500,
+          date: daysAgo(2),
+          desc: "Mined diamonds",
+        },
+        {
+          bankId: "BANK006443",
+          type: "Player",
+          amount: -100,
+          date: daysAgo(3),
+          desc: "Paid Alex",
+        },
+        {
+          bankId: "BANK006443",
+          type: "Shop",
+          amount: -50,
+          date: daysAgo(4),
+          desc: "Bought food",
+        },
+        {
+          bankId: "BANK006443",
+          type: "Job",
+          amount: 300,
+          date: daysAgo(5),
+          desc: "Sold iron",
+        },
+      ]);
+    }
+    // --- INTEREST RATES ---
+    const INTEREST = {
+      "Personal Loan": [6, 7, 9, 13, 16],
+      "Home Loan": [2, 3, 4, 5, 6.5],
+      "Business Loan": [5, 7, 8, 10.5, 13],
+      "Business Startup Loan": [3, 4, 6, 7, 9],
+      "Home Startup Loan": [2, 3, 5, 7, 8],
+    };
+
+    // --- APP STATE ---
+    let state = {
+      user: null,
+      page: "login",
+      dark: false,
+      sidebar: false,
+    };
+
+    // --- RENDER ---
+    function render() {
+      document.body.className = state.dark ? "dark" : "";
+      let html = "";
+      // Topbar
+      html += `<div class="topbar">
+        ${state.user ? `<button class="menu-btn" onclick="toggleSidebar()">☰</button>` : ""}
+        <span style="font-weight:700;font-size:1.2rem;">Minecraft Bank</span>
+        <span>
+          <button class="toggle-dark" onclick="toggleDark()">${state.dark ? "🌞" : "🌙"}</button>
+          ${state.user ? `<span class="profile-pic">${state.user.mcName[0].toUpperCase()}</span>` : ""}
+        </span>
+      </div>`;
+      // Sidebar
+      html += `<div class="sidebar${state.sidebar ? " open" : ""}">
+        <div class="center">
+          <div class="avatar">${state.user ? state.user.mcName[0].toUpperCase() : "?"}</div>
+          <div style="font-weight:600;">${state.user ? state.user.mcName : "Guest"}</div>
+          <div style="font-size:0.9rem;">${state.user ? state.user.bankId : ""}</div>
+        </div>
+        <ul class="menu">
+          <li onclick="gotoPage('home')" class="${state.page==='home'?'active':''}">Home</li>
+          <li onclick="gotoPage('bank')" class="${state.page==='bank'?'active':''}">Bank Status</li>
+          <li onclick="gotoPage('tax')" class="${state.page==='tax'?'active':''}">View Tax</li>
+          <li onclick="gotoPage('loan')" class="${state.page==='loan'?'active':''}">Apply Loan</li>
+          <li onclick="gotoPage('settings')" class="${state.page==='settings'?'active':''}">Account Settings</li>
+          <li onclick="gotoPage('top-tax')" class="${state.page==='top-tax'?'active':''}">Top Tax Payers</li>
+          <li onclick="gotoPage('top-advance')" class="${state.page==='top-advance'?'active':''}">Top Advance Payers</li>
+          <li onclick="gotoPage('contact')" class="${state.page==='contact'?'active':''}">Contact Us</li>
+          <li onclick="gotoPage('theme')" class="${state.page==='theme'?'active':''}">Theme Setting</li>
+        </ul>
+        <div class="logout">
+          <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+      </div>`;
+      // Main
+      html += `<div class="container" onclick="closeSidebar()">`;
+      if (!state.user) {
+        if (state.page === "register") html += registerForm();
+        else html += loginForm();
+      } else {
+        if (state.page === "home") html += homePage();
+        else if (state.page === "bank") html += bankStatus();
+        else if (state.page === "tax") html += taxDashboard();
+        else if (state.page === "loan") html += loanDashboard();
+        else if (state.page === "settings") html += accountSettings();
+        else if (state.page === "top-tax") html += topPayers("tax");
+        else if (state.page === "top-advance") html += topPayers("advance");
+        else if (state.page === "contact") html += contactUs();
+        else if (state.page === "theme") html += themeSettings();
+      }
+      html += `</div>`;
+      document.getElementById("app").innerHTML = html;
+    }
+
+    // --- LOGIN/REGISTER ---
+    function loginForm() {
+      return `<div class="card center">
+        <h2>Login</h2>
+        <input class="input" id="login-bankid" placeholder="Bank ID" autocomplete="username">
+        <input class="input" id="login-pass" type="password" placeholder="Password" autocomplete="current-password">
+        <button class="btn" onclick="doLogin()">Login</button>
+        <div style="margin:8px 0;">Don't have an account?</div>
+        <button class="btn btn-outline" onclick="gotoPage('register')">Create One</button>
+        <div style="margin-top:12px;font-size:0.9rem;color:#888;">
+          Test Account: <b>BANK006443</b> / <b>26</b>
+        </div>
+      </div>`;
+    }
+    function doLogin() {
+      const bankId = document.getElementById("login-bankid").value.trim();
+      const pass = document.getElementById("login-pass").value.trim();
+      const users = getLS("users", []);
+      const u = users.find(u => u.bankId === bankId && u.password === pass);
+      if (u) {
+        state.user = u;
+        state.page = "home";
+        render();
+      } else {
+        alert("Invalid Bank ID or password.");
+      }
+    }
+    function registerForm() {
+      return `<div class="card center">
+        <h2>Create Account</h2>
+        <input class="input" id="reg-bankname" placeholder="Bank Name">
+        <div class="flex">
+          <input class="input" id="reg-bankid" value="${generateBankId()}" readonly style="flex:1;">
+          <button class="btn btn-copy" onclick="copyBankId()">Copy</button>
+        </div>
+        <input class="input" id="reg-pass" type="password" placeholder="Password">
+        <select class="input" id="reg-mcedition">
+          <option value="Java">Java</option>
+          <option value="Bedrock">Bedrock</option>
+        </select>
+        <input class="input" id="reg-mcname" placeholder="Minecraft Name">
+        <button class="btn" onclick="doRegister()">Create Account</button>
+        <button class="btn btn-outline" onclick="gotoPage('login')">Back to Login</button>
+      </div>
+      <script>
+        document.getElementById('reg-mcedition').onchange = function() {
+          document.getElementById('reg-mcname').placeholder = this.value === 'Bedrock' ? '/box box <mc name> /box' : 'Minecraft Name';
+        }
+      </script>`;
+    }
+    function copyBankId() {
+      const el = document.getElementById("reg-bankid");
+      el.select();
+      document.execCommand("copy");
+      alert("Copied!");
+    }
+    function doRegister() {
+      const bankName = document.getElementById("reg-bankname").value.trim();
+      const bankId = document.getElementById("reg-bankid").value.trim();
+      const pass = document.getElementById("reg-pass").value.trim();
+      const mcEdition = document.getElementById("reg-mcedition").value;
+      const mcName = document.getElementById("reg-mcname").value.trim();
+      if (!bankName || !bankId || !pass || !mcName) {
+        alert("Please fill all fields.");
+        return;
+      }
+      const users = getLS("users", []);
+      if (users.find(u => u.bankId === bankId)) {
+        alert("Bank ID already exists.");
+        return;
+      }
+      users.push({
+        bankId, password: pass, bankName, mcEdition, mcName,
+        balance: 2000 + Math.floor(Math.random() * 3000),
+        profilePic: "",
+      });
+      setLS("users", users);
+      alert("Account created! Please login.");
+      state.page = "login";
+      render();
+    }
+
+    // --- HOME PAGE ---
+    function homePage() {
+      return `<div class="card center">
+        <h2>Welcome, ${state.user.mcName}!</h2>
+        <div style="margin-bottom:18px;">What would you like to do?</div>
+        <button class="btn" onclick="gotoPage('bank')">Bank Status</button>
+        <button class="btn" onclick="gotoPage('tax')">View Tax</button>
+        <button class="btn" onclick="gotoPage('loan')">Apply Loan</button>
+      </div>`;
+    }
+
+    // --- BANK STATUS ---
+    function bankStatus() {
+      const txs = getLS("transactions", []).filter(t => t.bankId === state.user.bankId);
+      const shopTx = txs.filter(t => t.type === "Shop");
+      const jobTx = txs.filter(t => t.type === "Job");
+      const playerTx = txs.filter(t => t.type === "Player");
+      return `<div class="card">
+        <h2>Bank Status</h2>
+        <div><b>Bank Name:</b> ${state.user.bankName}</div>
+        <div><b>Bank Balance:</b> ${state.user.balance} coins</div>
+        <div><b>Bank Info:</b> Secure Minecraft bank for all your needs!</div>
+        <div style="margin:18px 0;">
+          <button class="btn" onclick="showTx('shop')">Shop Transactions</button>
+          <button class="btn" onclick="showTx('job')">Job Transactions</button>
+          <button class="btn" onclick="showTx('player')">Player-to-Player Transactions</button>
+        </div>
+        <div id="tx-list">${txList(shopTx)}</div>
+      </div>
+      <script>
+        function showTx(type) {
+          const txs = ${JSON.stringify(txs)};
+          let list = [];
+          if (type === 'shop') list = txs.filter(t => t.type === 'Shop');
+          if (type === 'job') list = txs.filter(t => t.type === 'Job');
+          if (type === 'player') list = txs.filter(t => t.type === 'Player');
+          document.getElementById('tx-list').innerHTML = \`${txList([{desc:"",amount:0,date:""}])}\`.replace(/\\[\\]/, JSON.stringify(list));
+        }
+      </script>`;
+    }
+    function txList(txs) {
+      if (!txs.length) return `<div style="color:#888;margin-top:8px;">No transactions found.</div>`;
+      return txs.map(t => `<div style="background:${t.amount<0?'#ffebee':'#e8f5e9'};padding:8px 12px;border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span>${t.desc} (${t.date})</span>
+        <span style="color:${t.amount<0?'#e53935':'#43a047'};">${t.amount>0?'+':''}${t.amount} coins</span>
+      </div>`).join('');
+    }
+
+    // --- TAX DASHBOARD ---
+    function taxDashboard() {
+      const taxes = getLS("taxes", []);
+      const tax = taxes.find(t => t.bankId === state.user.bankId) || {selling:0,buying:0,total:0,paid:0,history:[],payments:[]};
+      const due = tax.total - tax.paid;
+      return `<div class="card">
+        <h2>Tax Dashboard</h2>
+        <div><b>Selling Tax:</b> ${tax.selling} coins</div>
+        <div><b>Buying Tax:</b> ${tax.buying} coins</div>
+        <div><b>Total Tax:</b> ${tax.total} coins</div>
+        <div><b>Tax Paid:</b> ${tax.paid} coins</div>
+        <div style="margin:12px 0;">
+          ${due>0?`<button class="btn" onclick="payTax()">Pay Tax</button>`:`<button class="btn btn-outline" onclick="advancePay()">Advance Pay</button>`}
+          <button class="btn btn-outline" onclick="showFullHistory()">Full History</button>
+          <button class="btn btn-outline" onclick="showTaxHistory()">Tax History</button>
+        </div>
+        <div>
+          <label><input type="checkbox" id="show-chart" checked onchange="toggleChart()"> Show Chart</label>
+          <button class="btn btn-copy" onclick="downloadChart()">Download Chart</button>
+        </div>
+        <div id="tax-chart">${taxChart(tax.history)}</div>
+        <div id="tax-extra"></div>
+      </div>`;
+    }
+    function payTax() {
+      const taxes = getLS("taxes", []);
+      const idx = taxes.findIndex(t => t.bankId === state.user.bankId);
+      if (idx !== -1) {
+        const due = taxes[idx].total - taxes[idx].paid;
+        taxes[idx].paid = taxes[idx].total;
+        taxes[idx].payments.push({date: new Date().toISOString().split("T")[0], amount: due});
+        setLS("taxes", taxes);
+        alert("Tax paid!");
+        render();
+      }
+    }
+    function advancePay() {
+      alert("Advance tax paid!");
+    }
+    function showFullHistory() {
+      const taxes = getLS("taxes", []);
+      const tax = taxes.find(t => t.bankId === state.user.bankId) || {payments:[]};
+      document.getElementById("tax-extra").innerHTML = `<div style="margin-top:12px;"><b>Full Payment History</b><br>${
+        tax.payments.slice(-5).map(p=>`${p.date}: <b>${p.amount} coins</b>`).join("<br>")
+      }</div>`;
+    }
+    function showTaxHistory() {
+      const taxes = getLS("taxes", []);
+      const tax = taxes.find(t => t.bankId === state.user.bankId) || {history:[]};
+      document.getElementById("tax-extra").innerHTML = `<div style="margin-top:12px;"><b>Per-Day Tax Calculated</b><br>${
+        tax.history.map(h=>`${h.date}: Selling ${h.selling}, Buying ${h.buying}, Total ${h.total}, Paid ${h.paid}`).join("<br>")
+      }</div>`;
+    }
+    function toggleChart() {
+      const checked = document.getElementById("show-chart").checked;
+      document.getElementById("tax-chart").style.display = checked ? "block" : "none";
+    }
+    function downloadChart() {
+      alert("Chart downloaded (simulated).");
+    }
+    function taxChart(history) {
+      if (!history || !history.length) return `<div style="color:#888;margin-top:8px;">No tax data for chart.</div>`;
+      // SVG line chart
+      const max = Math.max(...history.map(h=>h.total), 100);
+      const points = history.map((h,i)=>[40+(i*40), 100-(h.total/max)*80*0.4-10]);
+      let poly = points.map(p=>p.join(",")).join(" ");
+      return `<div class="chart"><svg viewBox="0 0 320 120">
+        <polyline fill="none" stroke="#43a047" stroke-width="3" points="${poly}" />
+        ${points.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#43a047"/>`).join("")}
+        ${history.map((h,i)=>`<text x="${40+i*40}" y="115" fill="#fff" font-size="10" text-anchor="middle">${h.date.slice(5)}</text>`).join("")}
+      </svg></div>`;
+    }
+
+    // --- LOAN DASHBOARD ---
+    function loanDashboard() {
+      const loans = getLS("loans", []).filter(l=>l.bankId===state.user.bankId);
+      return `<div class="card">
+        <h2>Loan Dashboard</h2>
+        <button class="btn" onclick="showLoanApply()">Apply for Loan</button>
+        <div style="margin-top:12px;"><b>My Loans</b></div>
+        ${loans.map(l=>`<div style="background:#e8f5e9;padding:8px 12px;border-radius:6px;margin-bottom:6px;">
+          <b>${l.type}</b> (${l.amount} coins, ${l.duration} week${l.duration>1?'s':''}, ${l.interest}%)
+          <br>Status: <b style="color:${l.status==='Pending'?'#ffa000':l.status==='Approved'?'#43a047':'#e53935'};">${l.status}</b>
+          <br>Reason: <i>${l.reason}</i>
+          <br><span style="font-size:0.9rem;color:#888;">Applied: ${l.appliedAt}</span>
+        </div>`).join('')}
+        <div id="loan-apply"></div>
+      </div>`;
+    }
+    function showLoanApply() {
+      document.getElementById("loan-apply").innerHTML = loanApplyForm();
+    }
+    function loanApplyForm() {
+      return `<div style="margin-top:12px;">
+        <b>Apply for a Loan</b><br>
+        <select class="input" id="loan-type" onchange="loanTypeChange()">
+          ${Object.keys(INTEREST).map(t=>`<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <input class="input" id="loan-amount" type="number" placeholder="Amount">
+        <select class="input" id="loan-duration" onchange="loanTypeChange()">
+          ${[1,2,3,4,5].map(w=>`<option value="${w}">${w} week${w>1?'s':''}</option>`).join('')}
+        </select>
+        <input class="input" id="loan-interest" placeholder="Interest Rate (%)" readonly>
+        <input class="input" id="loan-reason" placeholder="Why do you need this loan?">
+        <div id="loan-extra"></div>
+        <button class="btn" onclick="doLoanApply()">Apply</button>
+      </div>
+      <script>loanTypeChange();</script>`;
+    }
+    function loanTypeChange() {
+      const type = document.getElementById("loan-type").value;
+      const duration = +document.getElementById("loan-duration").value;
+      document.getElementById("loan-interest").value = INTEREST[type][duration-1];
+      let extra = "";
+      if (type === "Home Loan" || type === "Business Loan") {
+        extra = `<input class="input" id="loan-start" placeholder="Start Coords">
+        <input class="input" id="loan-end" placeholder="End Coords">
+        <input class="file-upload" id="loan-pic" type="file" accept="image/*">`;
+      } else {
+        extra = `<input class="input" id="loan-name" placeholder="Your Name">
+        <input class="input" id="loan-job" placeholder="Job">
+        <input class="input" id="loan-income" type="number" placeholder="Per Day Income">
+        <input class="file-upload" id="loan-pic" type="file" accept="image/*">`;
+      }
+      document.getElementById("loan-extra").innerHTML = extra;
+    }
+    function doLoanApply() {
+      const type = document.getElementById("loan-type").value;
+      const amount = +document.getElementById("loan-amount").value;
+      const duration = +document.getElementById("loan-duration").value;
+      const interest = +document.getElementById("loan-interest").value;
+      const reason = document.getElementById("loan-reason").value;
+      let extra = {};
+      if (type === "Home Loan" || type === "Business Loan") {
+        extra.start = document.getElementById("loan-start").value;
+        extra.end = document.getElementById("loan-end").value;
+      } else {
+        extra.name = document.getElementById("loan-name").value;
+        extra.job = document.getElementById("loan-job").value;
+        extra.perDayIncome = document.getElementById("loan-income").value;
+      }
+      // File upload (simulate)
+      const picInput = document.getElementById("loan-pic");
+      if (picInput && picInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          extra.pic = ev.target.result;
+          saveLoan();
+        };
+        reader.readAsDataURL(picInput.files[0]);
+      } else {
+        saveLoan();
+      }
+      function saveLoan() {
+        const loans = getLS("loans", []);
+        loans.push({
+          bankId: state.user.bankId,
+          type, amount, duration, interest,
+          status: "Pending",
+          reason,
+          appliedAt: new Date().toISOString().split("T")[0],
+          extra,
+        });
+        setLS("loans", loans);
+        alert("Loan applied! Status: Pending.");
+        render();
+      }
+    }
+
+    // --- ACCOUNT SETTINGS ---
+    function accountSettings() {
+      return `<div class="card">
+        <h2>Account Settings</h2>
+        <div><b>Bank Name:</b> ${state.user.bankName}</div>
+        <div><b>Bank ID:</b> ${state.user.bankId}</div>
+        <div><b>Minecraft Edition:</b> ${state.user.mcEdition}</div>
+        <div><b>Balance:</b> ${state.user.balance} coins</div>
+        <div style="margin:12px 0;"><b>Social Info</b></div>
+        <input class="input" id="set-mcname" value="${state.user.mcName}">
+        <input class="input" id="set-pass" type="password" value="${state.user.password}">
+        <button class="btn" onclick="saveSettings()">Save</button>
+      </div>`;
+    }
+    function saveSettings() {
+      const mcName = document.getElementById("set-mcname").value;
+      const pass = document.getElementById("set-pass").value;
+      const users = getLS("users", []);
+      const idx = users.findIndex(u=>u.bankId===state.user.bankId);
+      if (idx !== -1) {
+        users[idx].mcName = mcName;
+        users[idx].password = pass;
+        setLS("users", users);
+        state.user = users[idx];
+        alert("Saved!");
+        render();
+      }
+    }
+
+    // --- TOP PAYERS ---
+    function topPayers(type) {
+      const users = getLS("users", []);
+      const taxes = getLS("taxes", []);
+      let top = [];
+      if (type === "tax") {
+        top = taxes.map(t=>({
+          ...t,
+          user: users.find(u=>u.bankId===t.bankId),
+          paid: t.paid,
+        })).sort((a,b)=>b.paid-a.paid).slice(0,3);
+      } else {
+        top = taxes.map(t=>({
+          ...t,
+          user: users.find(u=>u.bankId===t.bankId),
+          advance: (t.payments||[]).reduce((a,p)=>a+(p.amount||0),0),
+        })).sort((a,b)=>b.advance-a.advance).slice(0,3);
+      }
+      return `<div class="card">
+        <h2>${type==="tax"?"Top 3 Tax Payers":"Top 3 Advance Tax Payers"}</h2>
+        ${top.map(t=>`<div style="background:#e8f5e9;padding:8px 12px;border-radius:6px;margin-bottom:6px;">
+          <b>${t.user?.mcName||"Unknown"}</b> (${t.user?.bankName||""})<br>
+          ${type==="tax"?`Tax Paid: ${t.paid} coins`:`Advance Paid: ${t.advance} coins`}
+        </div>`).join('')}
+      </div>`;
+    }
+
+    // --- CONTACT US ---
+    function contactUs() {
+      return `<div class="card">
+        <h2>Contact Us</h2>
+        For support, contact <b>admin@minecraftbank.com</b> or join our Discord!
+      </div>`;
+    }
+
+    // --- THEME SETTINGS ---
+    function themeSettings() {
+      return `<div class="card">
+        <h2>Theme Settings</h2>
+        <label><input type="checkbox" id="theme-dark" ${state.dark?"checked":""} onchange="toggleDark()"> Dark Mode</label>
+      </div>`;
+    }
+
+    // --- NAVIGATION & UTILS ---
+    function gotoPage(page) {
+      state.page = page;
+      state.sidebar = false;
+      render();
+    }
+    function logout() {
+      state.user = null;
+      state.page = "login";
+      state.sidebar = false;
+      render();
+    }
+    function toggleSidebar() {
+      state.sidebar = !state.sidebar;
+      render();
+    }
+    function closeSidebar() {
+      if (state.sidebar) {
+        state.sidebar = false;
+        render();
+      }
+    }
+    function toggleDark() {
+      state.dark = !state.dark;
+      render();
+    }
+
+    // --- INIT ---
+    injectTestData();
+    render();
+    window.gotoPage = gotoPage;
+    window.logout = logout;
+    window.toggleSidebar = toggleSidebar;
+    window.closeSidebar = closeSidebar;
+    window.toggleDark = toggleDark;
+    window.doLogin = doLogin;
+    window.doRegister = doRegister;
+    window.copyBankId = copyBankId;
+    window.payTax = payTax;
+    window.advancePay = advancePay;
+    window.showFullHistory = showFullHistory;
+    window.showTaxHistory = showTaxHistory;
+    window.toggleChart = toggleChart;
+    window.downloadChart = downloadChart;
+    window.showLoanApply = showLoanApply;
+    window.loanTypeChange = loanTypeChange;
+    window.doLoanApply = doLoanApply;
+    window.saveSettings = saveSettings;
+  </script>
+</body>
+</html>
